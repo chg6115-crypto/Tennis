@@ -35,6 +35,9 @@
 ExportedObj/
 .consulo/
 *.csproj
+!Tools/PrototypeChecks/PrototypeChecks.csproj
+/Tools/PrototypeChecks/bin/
+/Tools/PrototypeChecks/obj/
 *.unityproj
 *.sln
 *.suo

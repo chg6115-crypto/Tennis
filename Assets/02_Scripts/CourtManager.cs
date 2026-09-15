@@ -2,37 +2,33 @@ using UnityEngine;
 
 public class CourtManager : MonoBehaviour
 {
-    // =========================
-    // 코트 영역
-    // =========================
-
+    [Header("Court Area")]
     public BoxCollider playerArea;
     public BoxCollider enemyArea;
 
+    [Header("Enemy Serve Area")]
+    public BoxCollider enemyServeAreaLeft;
+    public BoxCollider enemyServeAreaRight;
 
-    // =========================
-    // IN / OUT 판정
-    // =========================
 
-    public bool IsInsidePlayerArea(
-        Vector3 position
-    )
+    public bool IsInsidePlayerArea(Vector3 position)
     {
-        return IsInsideArea(
-            position,
-            playerArea
-        );
+        return IsInsideArea(position, playerArea);
     }
 
-
-    public bool IsInsideEnemyArea(
-        Vector3 position
-    )
+    public bool IsInsideEnemyArea(Vector3 position)
     {
-        return IsInsideArea(
-            position,
-            enemyArea
-        );
+        return IsInsideArea(position, enemyArea);
+    }
+
+    public bool IsInsideEnemyServeAreaLeft(Vector3 position)
+    {
+        return IsInsideArea(position, enemyServeAreaLeft);
+    }
+
+    public bool IsInsideEnemyServeAreaRight(Vector3 position)
+    {
+        return IsInsideArea(position, enemyServeAreaRight);
     }
 
 
@@ -44,10 +40,7 @@ public class CourtManager : MonoBehaviour
         if (area == null)
             return false;
 
-
-        Bounds bounds =
-            area.bounds;
-
+        Bounds bounds = area.bounds;
 
         return
             position.x >= bounds.min.x &&
@@ -56,11 +49,6 @@ public class CourtManager : MonoBehaviour
             position.z <= bounds.max.z;
     }
 
-
-    // =========================
-    // Player가 Enemy 코트를
-    // 조준할 때 사용
-    // =========================
 
     public Vector3 GetEnemyTargetPoint(
         float horizontal,
@@ -78,11 +66,6 @@ public class CourtManager : MonoBehaviour
     }
 
 
-    // =========================
-    // Enemy가 Player 코트를
-    // 조준할 때 사용
-    // =========================
-
     public Vector3 GetPlayerTargetPoint(
         float horizontal,
         float depth,
@@ -99,9 +82,33 @@ public class CourtManager : MonoBehaviour
     }
 
 
-    // =========================
-    // 실제 목표 위치 계산
-    // =========================
+    public Vector3 GetEnemyServeTargetPoint(
+        bool targetLeft,
+        float horizontal,
+        float depth,
+        float margin
+    )
+    {
+        BoxCollider targetArea;
+
+        if (targetLeft)
+        {
+            targetArea = enemyServeAreaLeft;
+        }
+        else
+        {
+            targetArea = enemyServeAreaRight;
+        }
+
+        return GetTargetPoint(
+            targetArea,
+            horizontal,
+            depth,
+            margin,
+            true
+        );
+    }
+
 
     private Vector3 GetTargetPoint(
         BoxCollider area,
@@ -120,36 +127,13 @@ public class CourtManager : MonoBehaviour
             return Vector3.zero;
         }
 
+        Bounds bounds = area.bounds;
 
-        Bounds bounds =
-            area.bounds;
-
-
-        // -1 ~ +1
         horizontal =
-            Mathf.Clamp(
-                horizontal,
-                -1f,
-                1f
-            );
+            Mathf.Clamp(horizontal, -1f, 1f);
 
-
-        // -1 ~ +1
-        //
-        // -1 = 짧게
-        //  0 = 중앙
-        // +1 = 깊게
         depth =
-            Mathf.Clamp(
-                depth,
-                -1f,
-                1f
-            );
-
-
-        // =========================
-        // 좌우 위치
-        // =========================
+            Mathf.Clamp(depth, -1f, 1f);
 
         float minX =
             bounds.min.x + margin;
@@ -157,11 +141,8 @@ public class CourtManager : MonoBehaviour
         float maxX =
             bounds.max.x - margin;
 
-
         float horizontal01 =
-            (horizontal + 1f)
-            * 0.5f;
-
+            (horizontal + 1f) * 0.5f;
 
         float targetX =
             Mathf.Lerp(
@@ -170,22 +151,11 @@ public class CourtManager : MonoBehaviour
                 horizontal01
             );
 
-
-        // =========================
-        // 깊이 위치
-        // =========================
-
         float nearZ;
         float farZ;
 
-
         if (enemySide)
         {
-            // Enemy 코트는 +Z
-            //
-            // Net 쪽 = 작은 Z
-            // Baseline 쪽 = 큰 Z
-
             nearZ =
                 bounds.min.z + margin;
 
@@ -194,11 +164,6 @@ public class CourtManager : MonoBehaviour
         }
         else
         {
-            // Player 코트는 -Z
-            //
-            // Net 쪽 = 큰 Z
-            // Baseline 쪽 = 작은 Z
-
             nearZ =
                 bounds.max.z - margin;
 
@@ -206,11 +171,8 @@ public class CourtManager : MonoBehaviour
                 bounds.min.z + margin;
         }
 
-
         float depth01 =
-            (depth + 1f)
-            * 0.5f;
-
+            (depth + 1f) * 0.5f;
 
         float targetZ =
             Mathf.Lerp(
@@ -218,7 +180,6 @@ public class CourtManager : MonoBehaviour
                 farZ,
                 depth01
             );
-
 
         return new Vector3(
             targetX,

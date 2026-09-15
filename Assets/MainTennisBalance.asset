@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0635ea69e0894cc42ad5267b5fdba6eb, type: 3}
+  m_Name: MainTennisBalance
+  m_EditorClassIdentifier: Assembly-CSharp::TennisGame.TennisSettings
+  playerSpeed: 7.5
+  enemySpeed: 6.3
+  chargeMoveMultiplier: 0.6
+  chargeSeconds: 0.85
+  stamina: 100
+  chargeDrain: 14
+  sprintDrain: 24
+  staminaRecovery: 20
+  shotSpeed: 15
+  serveSpeed: 18
+  shotArc: 2.2
+  chargedPower: 1.3
+  hitReach: 2.1
+  maxHitHeight: 3.2
+  swingBuffer: 0.16
+  bounceSpeed: 0.65
+  bounceArc: 1.25
+  bounceDistance: 4.2
+  reactionSeconds: 0.25
+  aimError: 0.45
+  gamesPerSet: 3
+  setsToWin: 1
+  pointDelay: 1.6

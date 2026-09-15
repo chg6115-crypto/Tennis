@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 20d93b49ae2d433b8a34a31a7b928a10, type: 3}
+  m_Name: PrototypeBalance
+  m_EditorClassIdentifier:
+  gamesToWinSet: 6
+  setsToWinMatch: 2
+  moveSpeed: 7
+  shotSpeed: 16
+  hitRadius: 2.1
+  perfectRadius: 0.9
+  chargeSeconds: 0.85
+  chargePowerBonus: 0.35
+  staminaMax: 100
+  staminaRecovery: 16
+  movementCost: 5
+  sprintCost: 18
+  hitCost: 6
+  skillCost: 25
+  skillCooldown: 4
+  aiMoveSpeed: 6
+  aiShotSpeed: 15
+  aiReactionSeconds: 0.3
+  aiPredictionError: 0.5
+  aiMissChance: 0.08
+  aiAttackPlacement: 0.7
+  aiSkillChance: 0.2
+  gravity: 9.8
+  bounceRetention: 0.72
+  betweenPointsSeconds: 1.8

@@ -1,11 +1,8 @@
 using UnityEngine;
+using System.Collections;
 
 public class GameManager : MonoBehaviour
 {
-    // =========================
-    // 게임 상태
-    // =========================
-
     public enum GameState
     {
         Ready,
@@ -18,213 +15,208 @@ public class GameManager : MonoBehaviour
     [SerializeField]
     private GameState currentState = GameState.Ready;
 
-    // 다른 스크립트에서 현재 상태를 확인할 때 사용
+    [Header("Point")]
+    [SerializeField]
+    private float nextPointDelay = 1.5f;
+
+    [Header("Serve")]
+    [SerializeField]
+    private bool serveFromRight = true;
+
     public GameState CurrentState
     {
         get { return currentState; }
     }
 
-
-    // =========================
-    // 다른 시스템
-    // =========================
+    public bool ServeFromRight
+    {
+        get { return serveFromRight; }
+    }
 
     private BallController ball;
+    private BallSpawner ballSpawner;
     private CourtManager courtManager;
-
-
-    // =========================
-    // Unity 시작
-    // =========================
 
     void Start()
     {
-        ball =
-            FindAnyObjectByType<BallController>();
-
-        courtManager =
-            FindAnyObjectByType<CourtManager>();
-
-
-        if (ball == null)
-        {
-            Debug.LogError(
-                "GameManager: BallController를 찾을 수 없습니다."
-            );
-
-            return;
-        }
-
+        courtManager = FindAnyObjectByType<CourtManager>();
+        ballSpawner = FindAnyObjectByType<BallSpawner>();
 
         if (courtManager == null)
         {
             Debug.LogError(
                 "GameManager: CourtManager를 찾을 수 없습니다."
             );
+        }
 
+        if (ballSpawner == null)
+        {
+            Debug.LogError(
+                "GameManager: BallSpawner를 찾을 수 없습니다."
+            );
             return;
         }
 
+        ballSpawner.OnBallSpawned += HandleBallSpawned;
 
-        // Ball 이벤트 등록
-        ball.OnBallBounce +=
-            HandleBallBounce;
+        if (ballSpawner.CurrentBall != null)
+        {
+            HandleBallSpawned(ballSpawner.CurrentBall);
+        }
 
+        // 첫 포인트는 무조건 Player 오른쪽에서 서브
+        serveFromRight = true;
 
-        // =========================
-        // 게임 시작
-        // =========================
-
-        ChangeState(
-            GameState.Ready
-        );
+        ChangeState(GameState.Ready);
+        StartCoroutine(StartFirstPoint());
     }
-
 
     void OnDestroy()
     {
+        if (ballSpawner != null)
+        {
+            ballSpawner.OnBallSpawned -= HandleBallSpawned;
+        }
+
         if (ball != null)
         {
-            ball.OnBallBounce -=
-                HandleBallBounce;
+            ball.OnBallBounce -= HandleBallBounce;
         }
     }
 
-
-    // =========================
-    // 상태 변경
-    // =========================
-
-    public void ChangeState(
-        GameState newState
-    )
+    IEnumerator StartFirstPoint()
     {
-        currentState =
-            newState;
+        yield return null;
 
+        // BallSpawner의 Start에서 첫 공을 오른쪽에 생성한다.
+        ChangeState(GameState.ServeReady);
+
+        DebugServeSide();
+    }
+
+    void HandleBallSpawned(BallController newBall)
+    {
+        if (ball != null)
+        {
+            ball.OnBallBounce -= HandleBallBounce;
+        }
+
+        ball = newBall;
+
+        if (ball != null)
+        {
+            ball.OnBallBounce += HandleBallBounce;
+        }
+
+        Debug.Log("GameManager: 새 Ball 연결 완료");
+    }
+
+    public void ChangeState(GameState newState)
+    {
+        currentState = newState;
 
         Debug.Log(
-            "Game State → "
-            + currentState
+            "Game State → " + currentState
         );
     }
-
-
-    // =========================
-    // 서브 준비
-    // =========================
-
-    public void StartServeReady()
-    {
-        ChangeState(
-            GameState.ServeReady
-        );
-    }
-
-
-    // =========================
-    // 서브 시작
-    // =========================
 
     public void StartServe()
     {
-        ChangeState(
-            GameState.Serve
-        );
+        if (currentState != GameState.ServeReady)
+            return;
+
+        ChangeState(GameState.Serve);
     }
-
-
-    // =========================
-    // 랠리 시작
-    // =========================
 
     public void StartRally()
     {
-        ChangeState(
-            GameState.Rally
-        );
+        ChangeState(GameState.Rally);
     }
-
-
-    // =========================
-    // 바운드 처리
-    // =========================
 
     void HandleBallBounce(
         Vector3 bouncePosition,
         int bounceCount
     )
     {
+        if (currentState == GameState.PointEnd)
+            return;
+
         Debug.Log(
             bounceCount
             + "번째 바운드 위치 : "
             + bouncePosition
         );
 
-
-        // 첫 번째 바운드
         if (bounceCount == 1)
         {
-            CheckFirstBounce(
-                bouncePosition
-            );
-
+            CheckFirstBounce(bouncePosition);
             return;
         }
 
-
-        // 두 번째 바운드
         if (bounceCount == 2)
         {
             HandleSecondBounce();
         }
     }
 
-
-    // =========================
-    // 첫 바운드 IN / OUT
-    // =========================
-
-    void CheckFirstBounce(
-        Vector3 bouncePosition
-    )
+    void CheckFirstBounce(Vector3 bouncePosition)
     {
-        // =========================
-        // Player가 친 공
-        // =========================
+        if (ball == null || courtManager == null)
+            return;
 
         if (ball.lastHitter == "Player")
         {
+            // 서브 중에는 일반 EnemyArea가 아니라
+            // 대각선 반대편 ServiceArea를 검사한다.
+            if (currentState == GameState.Serve)
+            {
+                bool serveIn;
+
+                if (serveFromRight)
+                {
+                    serveIn =
+                        courtManager.IsInsideEnemyServeAreaLeft(
+                            bouncePosition
+                        );
+                }
+                else
+                {
+                    serveIn =
+                        courtManager.IsInsideEnemyServeAreaRight(
+                            bouncePosition
+                        );
+                }
+
+                if (serveIn)
+                {
+                    Debug.Log("Player Serve → IN");
+                    ChangeState(GameState.Rally);
+                }
+                else
+                {
+                    Debug.Log("Player Serve → OUT");
+
+                    EndPoint(
+                        "Enemy",
+                        "Player 서브가 서비스 박스를 벗어남"
+                    );
+                }
+
+                return;
+            }
+
             bool isIn =
                 courtManager.IsInsideEnemyArea(
                     bouncePosition
                 );
 
-
             if (isIn)
             {
-                Debug.Log(
-                    "Player Shot → IN"
-                );
-
-                // 정상적으로 들어온 공이면
-                // 랠리 상태로 전환
-                if (
-                    currentState == GameState.Serve
-                    || currentState == GameState.ServeReady
-                )
-                {
-                    ChangeState(
-                        GameState.Rally
-                    );
-                }
+                Debug.Log("Player Shot → IN");
             }
             else
             {
-                Debug.Log(
-                    "Player Shot → OUT"
-                );
-
+                Debug.Log("Player Shot → OUT");
 
                 EndPoint(
                     "Enemy",
@@ -232,14 +224,8 @@ public class GameManager : MonoBehaviour
                 );
             }
 
-
             return;
         }
-
-
-        // =========================
-        // Enemy가 친 공
-        // =========================
 
         if (ball.lastHitter == "Enemy")
         {
@@ -248,19 +234,13 @@ public class GameManager : MonoBehaviour
                     bouncePosition
                 );
 
-
             if (isIn)
             {
-                Debug.Log(
-                    "Enemy Shot → IN"
-                );
+                Debug.Log("Enemy Shot → IN");
             }
             else
             {
-                Debug.Log(
-                    "Enemy Shot → OUT"
-                );
-
+                Debug.Log("Enemy Shot → OUT");
 
                 EndPoint(
                     "Player",
@@ -268,25 +248,19 @@ public class GameManager : MonoBehaviour
                 );
             }
 
-
             return;
         }
-
 
         Debug.LogWarning(
             "GameManager: 마지막 타격자를 알 수 없습니다."
         );
     }
 
-
-    // =========================
-    // 두 번째 바운드
-    // =========================
-
     void HandleSecondBounce()
     {
-        // Player가 마지막으로 친 공을
-        // Enemy가 받아치지 못함
+        if (ball == null)
+            return;
+
         if (ball.lastHitter == "Player")
         {
             EndPoint(
@@ -294,9 +268,6 @@ public class GameManager : MonoBehaviour
                 "Enemy가 공을 받아치지 못함"
             );
         }
-
-        // Enemy가 마지막으로 친 공을
-        // Player가 받아치지 못함
         else if (ball.lastHitter == "Enemy")
         {
             EndPoint(
@@ -306,59 +277,64 @@ public class GameManager : MonoBehaviour
         }
     }
 
-
-    // =========================
-    // 포인트 종료
-    // =========================
-
-    void EndPoint(
-        string winner,
-        string reason
-    )
+    void EndPoint(string winner, string reason)
     {
-        // 이미 포인트가 끝났다면
-        // 중복 처리 방지
-        if (
-            currentState
-            == GameState.PointEnd
-        )
-        {
+        if (currentState == GameState.PointEnd)
             return;
-        }
 
+        ChangeState(GameState.PointEnd);
 
-        ChangeState(
-            GameState.PointEnd
-        );
-
-
-        // 공 정지
         if (ball != null)
         {
             ball.StopBall();
         }
 
+        Debug.Log("====================");
+        Debug.Log("POINT END");
+        Debug.Log("Winner : " + winner);
+        Debug.Log("Reason : " + reason);
+        Debug.Log("====================");
 
-        Debug.Log(
-            "===================="
+        StartCoroutine(PrepareNextPoint());
+    }
+
+    IEnumerator PrepareNextPoint()
+    {
+        yield return new WaitForSeconds(
+            nextPointDelay
         );
 
-        Debug.Log(
-            "POINT END"
+        if (ballSpawner == null)
+            yield break;
+
+        // 포인트가 끝날 때마다 서브 위치를 반대로 바꾼다.
+        serveFromRight = !serveFromRight;
+
+        // 현재는 Player가 계속 서브한다고 가정한다.
+        ballSpawner.SpawnPlayerBall(
+            serveFromRight
         );
 
-        Debug.Log(
-            "Winner : "
-            + winner
-        );
+        yield return null;
 
-        Debug.Log(
-            "Reason : "
-            + reason
-        );
+        ChangeState(GameState.ServeReady);
 
-        Debug.Log(
-            "===================="
-        );
+        DebugServeSide();
+    }
+
+    void DebugServeSide()
+    {
+        if (serveFromRight)
+        {
+            Debug.Log(
+                "다음 서브 : Player Right → Enemy Left"
+            );
+        }
+        else
+        {
+            Debug.Log(
+                "다음 서브 : Player Left → Enemy Right"
+            );
+        }
     }
 }
